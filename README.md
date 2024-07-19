@@ -8,7 +8,6 @@
 : Langchain, LangChain Expression Language(LCEL / LLM), GPT4, OpenAI, Streamlit
 
 
-**: Part of the UTS Rocketry Team project; code is not open to the public**
 
 
 ## File search AI ##
