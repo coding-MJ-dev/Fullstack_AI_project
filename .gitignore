@@ -3,3 +3,4 @@ env/
 note/
 .cache/
 test.py
+.streamlit

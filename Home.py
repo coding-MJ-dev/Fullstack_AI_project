@@ -14,7 +14,7 @@ Welcome to my FullstackGPT Portfolio!
             
 Here are the apps I made:
             
-- [ ] [Document_AI](/Document_AI)
+- [ ] [File_search_AI](/File_search_AI)
 - [ ] [Private_AI](/PrivateAI)
 - [ ] [Quiz_AI](/Quiz_AI)
 
