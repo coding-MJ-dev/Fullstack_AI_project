@@ -1,7 +1,8 @@
 # MJ's AI collection
 
+<img width="809" alt="AI" src="https://github.com/user-attachments/assets/1269db02-c50b-4d43-b0e6-a48ec3e36262">
 
-<img width="860" alt="AI" src="https://github.com/user-attachments/assets/d4ab299b-2b8e-402f-946a-f43be82d9452">
+
 
 : Building an AI web service using GPT-4 and Langchain
 
