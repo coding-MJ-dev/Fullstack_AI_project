@@ -16,12 +16,12 @@ Here are the apps I made:
             
 - 🗒️[File_search_AI](/File_search_AI)
 - 🔐[Secure_AI](/Secure_AI)
+- 💯[Quiz_AI](/Quiz_AI)
 
 """
 )
 
 
-# - [ ] [Quiz_AI](/Quiz_AI)
 # - [ ] [SiteGPT](/SiteGPT)
 # - [ ] [MeetingGPT](/MeetingGPT)
 # - [ ] [InvestorGPT](/InvestorGPT)
