@@ -4,8 +4,6 @@ note/
 .cache/
 test.py
 .streamlit
-/pages/Private AI.py
-/pages/Quiz AI.py
 .devcontainer/
 files/
 .backup/
