@@ -50,12 +50,6 @@ llm = ChatOpenAI(
     ],
 )
 
-llm_for_memory = ChatOpenAI(
-    temperature=0.1,
-    streaming=True,
-    callbacks=[],
-)
-
 
 @st.cache_data(show_spinner="Embedding file...")
 def embed_file(file):
@@ -102,25 +96,6 @@ def format_docs(docs):
     return "\n\n".join(document.page_content for document in docs)
 
 
-def load_memory(input):
-    print(memory.load_memory_variables({})["history"])
-    return memory.load_memory_variables({})["history"]
-
-
-def clear_memory():
-    st.session_state["messages"] = []
-    memory.clear()
-
-
-@st.cache_resource
-def get_memory():
-    return ConversationSummaryBufferMemory(
-        llm=llm_for_memory, max_token_limit=120, return_messages=True
-    )
-
-
-memory = get_memory()
-
 prompt = ChatPromptTemplate.from_messages(
     [
         (
@@ -140,7 +115,6 @@ with st.sidebar:
     file = st.file_uploader(
         "Upload a .txt .pdf or .docx file",
         type=["pdf", "txt", "docx"],
-        on_change=clear_memory,
     )
 
 if file:
@@ -157,7 +131,6 @@ if file:
         chain = (
             {
                 "context": retriever | RunnableLambda(format_docs),
-                "history": RunnableLambda(func=load_memory),
                 "question": RunnablePassthrough(),
             }
             | prompt
@@ -169,4 +142,3 @@ if file:
 
 else:
     st.session_state["messages"] = []
-    memory = get_memory
