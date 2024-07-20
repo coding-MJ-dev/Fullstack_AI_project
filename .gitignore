@@ -7,3 +7,5 @@ test.py
 /pages/Private AI.py
 /pages/Quiz AI.py
 .devcontainer/
+files/
+.backup/
