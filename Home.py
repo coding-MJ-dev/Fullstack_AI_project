@@ -13,10 +13,11 @@ st.markdown(
 Welcome to my AI Portfolio!
             
 Here are the apps I made:
-            
+
+- 💯[Quiz_AI](/Quiz_AI)          
 - 🗒️[File_search_AI](/File_search_AI)
 - 🔐[Secure_AI](/Secure_AI)
-- 💯[Quiz_AI](/Quiz_AI)
+
 
 """
 )
