@@ -23,7 +23,7 @@ Use this chatbot to ask questions about your documentation!
 
 It will answer based on the content inside the files.
 
-Please upload the file on the sidebar!
+Please upload your file on the sidebar!
 """
 )
 

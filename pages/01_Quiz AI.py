@@ -253,10 +253,11 @@ if not docs:
         """
     Welcome to Quiz AI!
 
-    To boost up your knowledge and help your study,
-    I will create a quiz from an uploaded document or Wikipedia articles.
+To boost your knowledge and help with your studies,
 
-    Please upload a file or search for a topic on the sidebar!
+I will create a quiz from an uploaded document or Wikipedia articles.
+
+Please upload a file or search for a topic on the sidebar!
     """
     )
 else:

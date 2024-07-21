@@ -18,12 +18,12 @@ st.title("🔐 Secure AI")
 st.markdown(
     """
 Welcome!
-            
+
 Use this chatbot to ask questions about your documentation!
 
-It will connect to the Internet. It works private local place.
+It doesn't connect to the Internet and works in a private local environment.
 
-Please upload the file on the sidebar!
+Please upload your file on the sidebar!
 """
 )
 
