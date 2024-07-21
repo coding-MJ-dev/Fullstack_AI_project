@@ -1,6 +1,8 @@
 # MJ's AI collection
 
-<img width="809" alt="AI" src="https://github.com/user-attachments/assets/1269db02-c50b-4d43-b0e6-a48ec3e36262">
+![Quiz AI](https://github.com/user-attachments/assets/01ecb7b6-8d52-4ffe-81ef-0ba1272772da)
+
+[Let's got to this cool Website](https://mj-ai-collection.streamlit.app/File_search_AI)
 
 
 
