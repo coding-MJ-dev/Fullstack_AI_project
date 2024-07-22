@@ -44,23 +44,17 @@ st.set_page_config(
     page_icon="🔍",
 )
 st.title("🔍 Investigate webpage AI")
+st.markdown(
+    """
+Welcome!
+            
+Use this chatbot to ask questions about a webiste!!
 
+Investigate webpage AI designed to analyze and extract information from webpages.
 
-# example - https://www.sydneydancecompany.com/class-sitemap.xml
-
-# if "win32" in sys.platform:
-#     # Windows specific event-loop policy & cmd
-#     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-#     cmds = [["C:/Windows/system32/HOSTNAME.EXE"]]
-# else:
-#     # Unix default event-loop policy & cmds
-#     cmds = [
-#         ["du", "-sh", "/Users/fredrik/Desktop"],
-#         ["du", "-sh", "/Users/fredrik"],
-#         ["du", "-sh", "/Users/fredrik/Pictures"],
-#     ]
-# Initialize a UserAgent object
-# ua = UserAgent()
+Please upload your file on the sidebar!
+"""
+)
 
 
 html2text_transfomer = Html2TextTransformer()
@@ -135,14 +129,8 @@ def load_website(url):
 
     loader = SitemapLoader(
         url,
-        # filter_urls=[
-        #     r"^(.*\/blog\/).*",
-        # ],
         parsing_function=parse_page,
     )
-    # Set a realistic user agent
-    # loader.headers = {"User-Agent": ua.random}
-    # if load to fast, it will be blocked
     loader.requests_per_second = 1
     docs = loader.load_and_split(text_splitter=splitter)
     vector_store = FAISS.from_documents(docs, OpenAIEmbeddings())
@@ -168,31 +156,16 @@ if url:
 
     else:
         retriever = load_website(url)
-        # docs = retriever.invoke("what kind of classes are there?")
-        # st.write(docs)
+        query = st.text_input("Ask a question to the website")
+        if query:
+            chain = (
+                {
+                    "docs": retriever,
+                    "question": RunnablePassthrough(),
+                }
+                | RunnableLambda(get_answers)
+                | RunnableLambda(choose_answer)
+            )
 
-        chain = (
-            {
-                "docs": retriever,
-                "question": RunnablePassthrough(),
-            }
-            | RunnableLambda(get_answers)
-            | RunnableLambda(choose_answer)
-        )
-
-        result = chain.invoke("what kind of classes are there?")
-        st.write(result.content)
-
-
-else:
-    st.markdown(
-        """
-Welcome!
-            
-Use this chatbot to ask questions about a webiste!!
-
-Investigate webpage AI designed to analyze and extract information from webpages.
-
-Please upload your file on the sidebar!
-"""
-    )
+            result = chain.invoke(query)
+            st.write(result.content.replace("$", "\$"))
