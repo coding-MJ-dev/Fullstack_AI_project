@@ -4,7 +4,7 @@
 
 
 
-### **[Let's got to this cool Website](https://mj-ai-collection.streamlit.app/Quiz_AI)**
+### **[Let's go to this cool Website](https://mj-ai-collection.streamlit.app/Quiz_AI)**
 
 
 
