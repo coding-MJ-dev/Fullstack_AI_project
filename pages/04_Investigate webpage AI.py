@@ -2,6 +2,7 @@ import sys
 import asyncio
 import streamlit as st
 from langchain.document_loaders import AsyncChromiumLoader
+from langchain.document_transformers import Html2TextTransformer
 
 st.set_page_config(
     page_title="Investigate webpage AI",
@@ -19,6 +20,9 @@ Investigate webpage AI designed to analyze and extract information from webpages
 Please upload your file on the sidebar!
 """
 )
+
+html2text_transfomer = Html2TextTransformer()
+
 
 if "win32" in sys.platform:
     # Windows specific event-loop policy & cmd
@@ -42,4 +46,5 @@ if url:
     # asyn chrominum loader
     loader = AsyncChromiumLoader([url])
     docs = loader.load()
+    transformed = html2text_transfomer.transform_documents(docs)
     st.write(docs)
