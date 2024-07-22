@@ -44,17 +44,7 @@ st.set_page_config(
     page_icon="🔍",
 )
 st.title("🔍 Investigate webpage AI")
-st.markdown(
-    """
-Welcome!
-            
-Use this chatbot to ask questions about a webiste!!
 
-Investigate webpage AI designed to analyze and extract information from webpages.
-
-Please upload your file on the sidebar!
-"""
-)
 
 # example - https://www.sydneydancecompany.com/class-sitemap.xml
 
@@ -80,16 +70,50 @@ def get_answers(inputs):
     docs = inputs["docs"]
     question = inputs["question"]
     answers_chain = answers_prompt | llm
-    answers = []
-    for doc in docs:
-        result = answers_chain.invoke(
+
+    return {
+        "question": question,
+        "answers": [
             {
-                "question": question,
-                "context": docs,
+                "answer": answers_chain.invoke(
+                    {"question": question, "context": doc.page_content}
+                ).content,
+                "source": doc.metadata["source"],
+                "date": doc.metadata["lastmod"],
             }
-        )
-        answers.append(result.content)
-    st.write(answers)
+            for doc in docs
+        ],
+    }
+
+
+choose_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
+            Use ONLY the following pre-existing answers to answer the user's question.
+            Use the answers that have the highest score (more helpful) and favor the most recent ones.
+            Cite sources and return the sources of the answers as they are, do not change them.
+            Answers: {answers}
+            """,
+        ),
+        ("human", "{question}"),
+    ]
+)
+
+
+def choose_answer(inputs):
+    answers = inputs["answers"]
+    question = inputs["question"]
+    choose_chain = choose_prompt | llm
+    condencsed = "\n\n".join(
+        f"Answer:{answer['answer']}\nSource:{answer['source']}\nDate:{answer['date']}\n"
+        for answer in answers
+    )
+    # for answer in answers:
+    #     condencsed += f"Answer:{answer['answer']}\nSource:{answer['source']}\nDate:{answer['date']}\n"
+    # st.write(condencsed)
+    return choose_chain.invoke({"question": question, "answers": condencsed})
 
 
 def parse_page(soup):
@@ -147,9 +171,28 @@ if url:
         # docs = retriever.invoke("what kind of classes are there?")
         # st.write(docs)
 
-        chain = {
-            "docs": retriever,
-            "question": RunnablePassthrough(),
-        } | RunnableLambda(get_answers)
+        chain = (
+            {
+                "docs": retriever,
+                "question": RunnablePassthrough(),
+            }
+            | RunnableLambda(get_answers)
+            | RunnableLambda(choose_answer)
+        )
 
-        chain.invoke("what kind of classes are there?")
+        result = chain.invoke("what kind of classes are there?")
+        st.write(result.content)
+
+
+else:
+    st.markdown(
+        """
+Welcome!
+            
+Use this chatbot to ask questions about a webiste!!
+
+Investigate webpage AI designed to analyze and extract information from webpages.
+
+Please upload your file on the sidebar!
+"""
+    )
