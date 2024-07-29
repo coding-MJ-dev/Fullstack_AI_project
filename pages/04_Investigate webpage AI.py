@@ -9,11 +9,42 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 
 
-# import sys
-# import asyncio
-# from fake_useragent import UserAgent
+class ChatCallbackHandler(BaseCallbackHandler):
+    message = ""
+
+    def on_llm_start(self, *args, **kwargs):
+        self.message_box = st.empty()
+
+    def on_llm_end(self, *args, **kwargs):
+        save_message(self.message, "ai")
+
+    def on_llm_new_token(self, token, *args, **kwargs):
+        self.message += token
+        self.message_box.markdown(self.message)
+
 
 llm = ChatOpenAI(temperature=0.1)
+
+
+st.set_page_config(
+    page_title="Investigate webpage AI",
+    page_icon="🔍",
+)
+st.title("🔍 Investigate webpage AI")
+st.markdown(
+    """
+Welcome!
+            
+Use this chatbot to ask questions about a webiste!!
+
+Investigate webpage AI designed to analyze and extract information from webpages.
+
+Please upload your file on the sidebar!
+"""
+)
+
+
+html2text_transfomer = Html2TextTransformer()
 
 answers_prompt = ChatPromptTemplate.from_template(
     """
@@ -38,26 +69,6 @@ answers_prompt = ChatPromptTemplate.from_template(
     Question: {question}
 """
 )
-
-st.set_page_config(
-    page_title="Investigate webpage AI",
-    page_icon="🔍",
-)
-st.title("🔍 Investigate webpage AI")
-st.markdown(
-    """
-Welcome!
-            
-Use this chatbot to ask questions about a webiste!!
-
-Investigate webpage AI designed to analyze and extract information from webpages.
-
-Please upload your file on the sidebar!
-"""
-)
-
-
-html2text_transfomer = Html2TextTransformer()
 
 
 def get_answers(inputs):
