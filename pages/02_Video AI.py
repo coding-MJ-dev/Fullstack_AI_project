@@ -3,7 +3,15 @@ import subprocess
 import math
 import glob
 import openai
+import os
 from pydub import AudioSegment
+
+
+# For development purposes
+# I don't want to create transcriptions multiple times for the same file because it can be expensive.
+has_transcript = os.path.exists(
+    "./.cache/DP_Longest_Common_Subsequence_Leetcode1143.txt"
+)
 
 
 @st.cache_data()
@@ -39,6 +47,10 @@ def cut_audio_in_chunks(audio_path, chunk_size, chunks_folder):
 
 @st.cache_data()
 def transcribe_chunks(chunk_folder, destination):
+    # --- for development purpose --- #
+    if has_transcript:
+        return
+    # ------------------------------- #
     files = glob.glob(f"{chunk_folder}/*.mp3")
     files.sort()
     # find mp3 files in the folder
