@@ -6,6 +6,7 @@ import openai
 from pydub import AudioSegment
 
 
+@st.cache_data()
 def extract_audio_from_video(video_path):
     audio_path = video_path.replace("mp4", "mp3")
     command = [
@@ -23,6 +24,7 @@ def extract_audio_from_video(video_path):
 
 
 # chunk_size <= minutes to cut
+@st.cache_data()
 def cut_audio_in_chunks(audio_path, chunk_size, chunks_folder):
     track = AudioSegment.from_mp3(audio_path)
     chunk_len = chunk_size * 60 * 1000
@@ -35,6 +37,7 @@ def cut_audio_in_chunks(audio_path, chunk_size, chunks_folder):
         chunk.export(f"{chunks_folder}/chunk_{i}.mp3", format="mp3")
 
 
+@st.cache_data()
 def transcribe_chunks(chunk_folder, destination):
     files = glob.glob(f"{chunk_folder}/*.mp3")
     files.sort()
