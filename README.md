@@ -12,6 +12,7 @@
 
 : Langchain, LangChain Expression Language(LCEL / LLM), GPT4, OpenAI, Streamlit
 
+**: data engineering, data scrapping, data analysis**
 
 
 ## Quiz AI ##
@@ -19,16 +20,33 @@
 Do you want to boost your knowledge?
 
 This quiz-generating AI will help with your studies. 
-
 You can simply upload documents or Wikipedia articles to check your understanding.
 
+: Gathering a data from Wikipedia or uploaded document and making a quiz based on the data
+: data engineering
 
+
+###     
+
+
+## Investigate webpage AI ##
+
+Use this chatbot to ask questions about content on a website.
+
+Investigate webpage AI designed to analyze and extract information from webpages.
+
+
+###
 
 ## File search AI ##
+
 : Quickly and accurately understand and summarize document contents using AI.
 
 : By using this AI chatbot, it will reads documents (.txt, .pdf, .docx, etc.) and promptly answers any questions about the document.
 
+
+
+###
 
 
 ## Secure AI ##
@@ -39,4 +57,7 @@ You can simply upload documents or Wikipedia articles to check your understandin
 
 : It is for confidential documents since none of the documents are saved on the server.
 
+
+
+###
 
