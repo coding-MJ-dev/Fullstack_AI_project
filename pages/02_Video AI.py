@@ -78,7 +78,7 @@ Welcome to Video AI!
 
 Do you need a transcript of a video? Or don't have enough time to watch a video but need a summary? Or perhaps you want to ask something about the video's content?
 
-##### What you can get
+#### What you can get
 - video transcription
 - summary
 - ask question about a video
@@ -96,7 +96,7 @@ with st.sidebar:
 if video:
     chunks_folder = "./.cache/chunks"
 
-    with st.status("Loading video..."):
+    with st.status("Loading video...") as status:
         video_content = video.read()
         video_path = f"./.cache/{video.name}"
         audio_path = video_path.replace("mp4", "mp3")
@@ -105,9 +105,11 @@ if video:
         with open(video_path, "wb") as f:
             # save the video that user upload to cache file "f"
             f.write(video_content)
-    with st.status("Extracting audio..."):
+        status.update(label="Extracting audio...")
         extract_audio_from_video(video_path)
-    with st.status("cutting audio segments..."):
+        status.update(label="cutting audio segments...")
         cut_audio_in_chunks(audio_path, 10, chunks_folder)
-    with st.status("Transcribing audio..."):
+        status.update(label="Transcribing audio...")
         transcribe_chunks(chunks_folder, transcript_path)
+
+        transcript_tab, summary_tab, qa_tab = st.tabs(["Transcript", "Summary", "Q&A"])
