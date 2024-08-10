@@ -12,7 +12,7 @@
 
 : Langchain, LangChain Expression Language(LCEL / LLM), GPT4, OpenAI, Streamlit
 
-**: data engineering, data scrapping, data analysis**
+**: data engineering, prompt engineering, data scrapping, data analysis**
 
 
 ## Quiz AI ##
