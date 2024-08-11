@@ -15,8 +15,9 @@ from langchain.embeddings import CacheBackedEmbeddings, OpenAIEmbeddings
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain.storage import LocalFileStore
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
+from langchain.callbacks.base import BaseCallbackHandler
 
-llm = ChatOpenAI(temperature=0.1)
+llm = ChatOpenAI(temperature=0.1, model="gpt-4o-mini")
 
 memory = ConversationSummaryBufferMemory(
     llm=llm,
@@ -35,6 +36,37 @@ splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=800,
     chunk_overlap=100,
 )
+
+
+class ChatCallBackHandler(BaseCallbackHandler):
+
+    def on_llm_start(self, *args, **kwargs):
+        self.message = ""  # Reset message on LLM start
+        self.message_box = st.empty()  # Create an empty placeholder for the message
+
+    def on_llm_end(self, *args, **kwargs):
+        save_message(self.message, "ai")
+
+    def on_llm_new_token(self, token, *args, **kwargs):
+        self.message += token  # Accumulate tokens
+        self.message_box.markdown(
+            self.message
+        )  # Update the message box with the accumulated message
+
+
+class SimpleMemory:
+    def __init__(self):
+        self.context = ""
+
+    def update_memory(self, new_context):
+        self.context += new_context
+
+    def get_context(self):
+        return self.context
+
+
+if "memory" not in st.session_state:
+    st.session_state.memory = SimpleMemory()
 
 
 # embed textfile
@@ -130,8 +162,8 @@ def paint_history():
         )
 
 
-def format_docs(docs):
-    return "\n\n".join(document.page_content for document in docs)
+# def format_docs(docs):
+#     return "\n\n".join(document.page_content for document in docs)
 
 
 def save_memory(input, output):
@@ -193,29 +225,43 @@ with st.sidebar:
 
 
 if video:
-    chunks_folder = "./.cache/chunks"
+    # chunks_folder = "./.cache/chunks"
+    chunks_folder = f"./.cache/chunks_{os.path.splitext(video.name)[0]}"
+    transcript_path = f"./.cache/{os.path.splitext(video.name)[0]}.txt"
 
-    with st.status("Loading video...") as status:
-        video_content = video.read()
-        video_path = f"./.cache/{video.name}"
-        audio_path = video_path.replace("mp4", "mp3")
-        transcript_path = video_path.replace("mp4", "txt")
-        # wb > write in binary
-        with open(video_path, "wb") as f:
-            # save the video that user upload to cache file "f"
-            f.write(video_content)
-        status.update(label="Extracting audio...")
-        extract_audio_from_video(video_path)
-        status.update(label="cutting audio segments...")
-        cut_audio_in_chunks(audio_path, 10, chunks_folder)
-        status.update(label="Transcribing audio...")
-        transcribe_chunks(chunks_folder, transcript_path)
+    if not os.path.exists(transcript_path):
+        with st.status("Loading video...") as status:
+            video_content = video.read()
+            os.makedirs("./.cache", exist_ok=True)
+            video_path = f"./.cache/{video.name}"
+            audio_path = (
+                video_path.replace(".mp4", ".mp3")
+                .replace(".avi", ".mp3")
+                .replace(".mkv", ".mp3")
+                .replace(".mov", ".mp3")
+            )
+            # transcript_path = video_path.replace("mp4", "txt")
+
+            # wb > write in binary
+            with open(video_path, "wb") as f:
+                # save the video that user upload to cache file "f"
+                f.write(video_content)
+            status.update(label="Extracting audio...")
+            extract_audio_from_video(video_path)
+            status.update(label="cutting audio segments...")
+            os.makedirs(chunks_folder, exist_ok=True)
+            cut_audio_in_chunks(audio_path, 10, chunks_folder)
+            status.update(label="Transcribing audio...")
+            transcribe_chunks(chunks_folder, transcript_path)
 
     transcript_tab, summary_tab, qa_tab = st.tabs(["Transcript", "Summary", "Q&A"])
 
     with transcript_tab:
-        with open(transcript_path, "r") as file:
-            st.write(file.read())
+        if os.path.exists(transcript_path):
+            with open(transcript_path, "r") as file:
+                st.write(file.read())
+        else:
+            st.write("Transcription file not found.")
 
     with summary_tab:
         start = st.button("Generate Summary")
@@ -270,6 +316,9 @@ if video:
 
     with qa_tab:
         retriever = embed_file(transcript_path)
+        send_message("Ask anything about your video!", "ai", save=False)
+        paint_history()
+        message = st.text_input("Ask anything about your video...")
 
         qa_prompt = ChatPromptTemplate.from_messages(
             [
@@ -285,9 +334,11 @@ if video:
             ]
         )
 
-        message = st.text_input("Ask anything about your video...")
-
         if message:
+            send_message(message, "human")
+            # Update memory with the retrieved context
+            st.session_state.memory.update_memory(formatted_docs)
+
             chain = (
                 {
                     "context": retriever | RunnableLambda(format_docs),
@@ -297,5 +348,16 @@ if video:
                 | llm
             )
 
+            # Update memory with the retrieved context
+            st.session_state.memory.update_memory(formatted_docs)
+
+            chain_input = {
+                "context": st.session_state.memory.get_context(),
+                "question": message,
+            }
+
             with st.chat_message("ai"):
-                chain.invoke(message).content
+                response = chain.invoke(chain_input)
+                # chain.invoke(message).content
+        else:
+            st.session_state["messages"] = []
