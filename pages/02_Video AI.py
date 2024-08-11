@@ -6,16 +6,24 @@ import openai
 import os
 from pydub import AudioSegment
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import StrOutputParser
 from langchain.vectorstores.faiss import FAISS
 from langchain.embeddings import CacheBackedEmbeddings, OpenAIEmbeddings
+from langchain.memory import ConversationSummaryBufferMemory
 from langchain.storage import LocalFileStore
+from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 
 llm = ChatOpenAI(temperature=0.1)
 
+memory = ConversationSummaryBufferMemory(
+    llm=llm,
+    max_token_limit=120,
+    memory_key="chat_history",
+    return_messages=True,
+)
 
 # For development purposes
 # I don't want to create transcriptions multiple times for the same file because it can be expensive.
@@ -97,6 +105,63 @@ def transcribe_chunks(chunk_folder, destination):
             )
             # add it to the destination
             text_file.write(transcript["text"])
+
+
+# ----------- from somewher-------- #
+
+
+def save_message(message, role):
+    st.session_state["messages"].append({"message": message, "role": role})
+
+
+def send_message(message, role, save=True):
+    with st.chat_message(role):
+        st.markdown(message)
+    if save:
+        save_message(message, role)
+
+
+def paint_history():
+    for message in st.session_state["messages"]:
+        send_message(
+            message["message"],
+            message["role"],
+            save=False,
+        )
+
+
+def format_docs(docs):
+    return "\n\n".join(document.page_content for document in docs)
+
+
+def save_memory(input, output):
+    st.session_state["chat_history"].append({"input": input, "output": output})
+
+
+def load_memory(input):
+    return memory.load_memory_variables({})["chat_history"]
+
+
+def invoke_chain(message):
+    result = chain.invoke(message)
+    save_memory(message, result.content)
+    print(result)
+
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
+
+            Answer the question using ONLY the following context and not your trading data. If you don't know the answer just say you don't know. DON'T make anything up.            
+            Context: {context}
+            """,
+        ),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ]
+)
 
 
 ###-------- page start ----------###
@@ -203,7 +268,34 @@ if video:
                     )
             st.write(summary)
 
-        with qa_tab:
-            retriever = embed_file(transcript_path)
-            docs = retriever.invoke("do he talk about dynamic progamming?")
-            st.write(docs)
+    with qa_tab:
+        retriever = embed_file(transcript_path)
+
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+            Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+            
+            Context: {context}
+            """,
+                ),
+                ("human", "{question}"),
+            ]
+        )
+
+        message = st.text_input("Ask anything about your video...")
+
+        if message:
+            chain = (
+                {
+                    "context": retriever | RunnableLambda(format_docs),
+                    "question": RunnablePassthrough(),
+                }
+                | qa_prompt
+                | llm
+            )
+
+            with st.chat_message("ai"):
+                chain.invoke(message).content
