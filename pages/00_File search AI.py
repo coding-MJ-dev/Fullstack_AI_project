@@ -78,19 +78,19 @@ def embed_file(file):
     return retriever
 
 
-# class SimpleMemory:
-#     def __init__(self):
-#         self.context = ""
+class SimpleMemory:
+    def __init__(self):
+        self.context = ""
 
-#     def update_memory(self, new_context):
-#         self.context += new_context
+    def update_memory(self, new_context):
+        self.context += new_context
 
-#     def get_context(self):
-#         return self.context
+    def get_context(self):
+        return self.context
 
 
-# if "memory" not in st.session_state:
-#     st.session_state.memory = SimpleMemory()
+if "memory" not in st.session_state:
+    st.session_state.memory = SimpleMemory()
 
 
 def save_message(message, role):
