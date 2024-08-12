@@ -136,6 +136,10 @@ def transcribe_chunks(chunk_folder, destination):
             text_file.write(transcript["text"])
 
 
+def text_to_bytes(text):
+    return text.encode("utf-8")
+
+
 class SimpleMemory:
     def __init__(self):
         self.context = ""
@@ -279,14 +283,21 @@ if video:
             status.update(label="Transcribing audio...")
             transcribe_chunks(chunks_folder, transcript_path)
 
-    transcript_tab, summary_tab, qa_tab = st.tabs(["Transcript", "Summary", "Q&A"])
+    # --- Transcription download"
+    if os.path.exists(transcript_path):
+        with open(transcript_path, "r") as file:
+            transcript_text = file.read()
 
-    with transcript_tab:
-        if os.path.exists(transcript_path):
-            with open(transcript_path, "r") as file:
-                st.write(file.read())
-        else:
-            st.write("Transcription file not found.")
+        st.download_button(
+            label="Download transcript",
+            data=transcript_text,
+            file_name=os.path.basename(transcript_path),
+            mime="text/plain",
+        )
+    else:
+        st.write("Transcription file not found.")
+
+    summary_tab, qa_tab = st.tabs(["Summary", "Q&A"])
 
     with summary_tab:
         start = st.button("Generate Summary")
