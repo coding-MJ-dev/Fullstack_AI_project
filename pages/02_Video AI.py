@@ -297,110 +297,106 @@ if video:
     else:
         st.write("Transcription file not found.")
 
-    summary_tab, qa_tab = st.tabs(["Summary", "Q&A"])
+    # QA with summary -------------
+    loader = TextLoader(transcript_path)
+    docs = loader.load_and_split(text_splitter=splitter)
 
-    with summary_tab:
-        start = st.button("Generate Summary")
-        if start:
-            loader = TextLoader(transcript_path)
-            docs = loader.load_and_split(text_splitter=splitter)
+    # summarize one chain
+    first_summary_prompt = ChatPromptTemplate.from_template(
+        """
+        Write a concise summary of the following:
+        "{text}"
+        CONCISE SUMMARY: 
+        """
+    )
 
-            # summarize one chain
-            first_summary_prompt = ChatPromptTemplate.from_template(
+    first_summary_chain = (
+        first_summary_prompt | llm | StrOutputParser()
+    )  # StrOutputParser make us don't need to use .content
+
+    # --------------------------------------------------------------------
+    # --------------------------- refine chain ---------------------------
+    # The refine documents chain constructs a response by looping over the input documents and iteratively updating its answer. (https://js.langchain.com/v0.1/docs/modules/chains/document/refine/)
+    # ---------------------------------------------------------------------
+    # Summarize all document
+    refine_prompt = ChatPromptTemplate.from_template(
+        """
+        Your job is to produce a final summary.
+        We have provided an existing summary up to a certain point: {existing_summary}
+        We have the opportunity to refine the existing summary (only if needed) with some more context below.
+        ------------
+        {context}
+        ------------
+        Given the new context, refine the original summary.
+        If the context isn't useful, RETURN the original summary.
+        """
+    )
+
+    refine_chain = refine_prompt | llm | StrOutputParser()
+    summary = ""
+    with st.status("Summarizing...") as status:
+
+        if st.session_state["summary"]:
+            summary = st.session_state["summary"]
+
+        else:
+            summary = first_summary_chain.invoke({"text": docs[0].page_content})
+            for i, doc in enumerate(docs[1:]):
+                status.update(label=f"processing doc{i+1}/{len(docs)-1}")
+                summary = refine_chain.invoke(
+                    {
+                        "existing_summary": summary,
+                        "context": doc.page_content,
+                    }
+                )
+            save_summary(summary)
+    st.write(summary)
+
+    retriever = embed_file(transcript_path)
+    # qa_start = st.button("Ask about the video")
+    # send_message(summary, "ai", save=False)
+    send_message("Ask anything about your video!", "ai", save=False)
+    paint_history()
+    message = st.chat_input("Ask anything about your video...")
+
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
                 """
-                Write a concise summary of the following:
-                "{text}"
-                CONCISE SUMMARY: 
-                """
-            )
+                Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
 
-            first_summary_chain = (
-                first_summary_prompt | llm | StrOutputParser()
-            )  # StrOutputParser make us don't need to use .content
+                Context: {context}
+                """,
+            ),
+            ("human", "{question}"),
+        ]
+    )
 
-            # --------------------------------------------------------------------
-            # --------------------------- refine chain ---------------------------
-            # The refine documents chain constructs a response by looping over the input documents and iteratively updating its answer. (https://js.langchain.com/v0.1/docs/modules/chains/document/refine/)
-            # ---------------------------------------------------------------------
-            # Summarize all document
-            refine_prompt = ChatPromptTemplate.from_template(
-                """
-                Your job is to produce a final summary.
-                We have provided an existing summary up to a certain point: {existing_summary}
-                We have the opportunity to refine the existing summary (only if needed) with some more context below.
-                ------------
-                {context}
-                ------------
-                Given the new context, refine the original summary.
-                If the context isn't useful, RETURN the original summary.
-                """
-            )
+    if message:
+        send_message(message, "human")
+        docs = retriever.similarity_search(message)
+        formatted_docs = format_docs(docs)
 
-            refine_chain = refine_prompt | llm | StrOutputParser()
-            summary = ""
-            with st.status("Summarizing...") as status:
+        # Update memory with the retrieved context
+        st.session_state.memory.update_memory(message)
+        chain_input = {
+            "context": st.session_state.memory.get_context(),
+            "question": message,
+        }
 
-                if st.session_state["summary"]:
-                    summary = st.session_state["summary"]
+        # chain = (
+        #     {
+        #         "context": retriever | RunnableLambda(message),
+        #         "question": RunnablePassthrough(),
+        #     }
+        #     | qa_prompt
+        #     | llm
+        # )
 
-                else:
-                    summary = first_summary_chain.invoke({"text": docs[0].page_content})
-                    for i, doc in enumerate(docs[1:]):
-                        status.update(label=f"processing doc{i+1}/{len(docs)-1}")
-                        summary = refine_chain.invoke(
-                            {
-                                "existing_summary": summary,
-                                "context": doc.page_content,
-                            }
-                        )
-                    save_summary(summary)
-            st.write(summary)
-
-    # with qa_tab:
-    #     retriever = embed_file(transcript_path)
-    #     qa_start = st.button("Ask about the video")
-    #     send_message("Ask anything about your video!", "ai", save=False)
-    #     paint_history()
-    #     message = st.chat_input("Ask anything about your video...")
-
-    #     qa_prompt = ChatPromptTemplate.from_messages(
-    #         [
-    #             (
-    #                 "system",
-    #                 """
-    #                 Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
-
-    #                 Context: {context}
-    #                 """,
-    #             ),
-    #             ("human", "{question}"),
-    #         ]
-    #     )
-
-    #     if message:
-    #         send_message(message, "human")
-    #         docs = retriever.similarity_search(message)
-    #         formatted_docs = format_docs(docs)
-
-    #         # Update memory with the retrieved context
-    #         st.session_state.memory.update_memory(message)
-    #         chain_input = {
-    #             "context": st.session_state.memory.get_context(),
-    #             "question": message,
-    #         }
-
-    #         # chain = (
-    #         #     {
-    #         #         "context": retriever | RunnableLambda(message),
-    #         #         "question": RunnablePassthrough(),
-    #         #     }
-    #         #     | qa_prompt
-    #         #     | llm
-    #         # )
-
-    #         chain = prompt | llm
-    #         with st.chat_message("ai"):
-    #             response = chain.invoke(chain_input)
-    #             # chain.invoke(message).content
-    #     else:
-    #         st.session_state["messages"] = []
+        chain = prompt | llm
+        with st.chat_message("ai"):
+            response = chain.invoke(chain_input)
+            # chain.invoke(message).content
+    else:
+        st.session_state["messages"] = []
