@@ -136,19 +136,19 @@ def transcribe_chunks(chunk_folder, destination):
             text_file.write(transcript["text"])
 
 
-# class SimpleMemory:
-#     def __init__(self):
-#         self.context = ""
+class SimpleMemory:
+    def __init__(self):
+        self.context = ""
 
-#     def update_memory(self, new_context):
-#         self.context += new_context
+    def update_memory(self, new_context):
+        self.context += new_context
 
-#     def get_context(self):
-#         return self.context
+    def get_context(self):
+        return self.context
 
 
 if "memory" not in st.session_state:
-    st.session_state.memory = []
+    st.session_state.memory = SimpleMemory()
 
 if "summary" not in st.session_state:
     st.session_state.summary = ""
@@ -178,25 +178,29 @@ def paint_history():
             )
 
 
-# ----------- save summary for chat -------- #
+# ---- save chat as a doc, use this context for the next chat ----
+def format_docs(docs):
+    return "\n\n".join(document.page_content for document in docs)
+
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
+            Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
+
+            Context: {context}
+            """,
+        ),
+        ("human", "{question}"),
+    ]
+)
+
+
+# ----------- save summary -------- #
 def save_summary(summary):
     st.session_state["summary"] += summary
-
-
-# # class SimpleMemory:
-# #     def __init__(self):
-# #         self.context = ""
-
-# #     def update_memory(self, new_context):
-# #         self.context += new_context
-
-# #     def get_context(self):
-# #         return self.context
-
-
-# def paint_summary():
-#     if "summary" in st.session_state:  # Check if there are messages in session state
-#         return st.session_state["summary"].get_context()
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -341,50 +345,51 @@ if video:
                     save_summary(summary)
             st.write(summary)
 
-    with qa_tab:
-        retriever = embed_file(transcript_path)
-        send_message("Ask anything about your video!", "ai", save=False)
-        paint_history()
-        message = st.text_input("Ask anything about your video...")
+    # with qa_tab:
+    #     retriever = embed_file(transcript_path)
+    #     qa_start = st.button("Ask about the video")
+    #     send_message("Ask anything about your video!", "ai", save=False)
+    #     paint_history()
+    #     message = st.chat_input("Ask anything about your video...")
 
-        qa_prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    """
-            Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
-            
-            Context: {context}
-            """,
-                ),
-                ("human", "{question}"),
-            ]
-        )
+    #     qa_prompt = ChatPromptTemplate.from_messages(
+    #         [
+    #             (
+    #                 "system",
+    #                 """
+    #                 Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
 
-        if message:
-            send_message(message, "human")
-            # Update memory with the retrieved context
-            st.session_state.memory.update_memory(message)
+    #                 Context: {context}
+    #                 """,
+    #             ),
+    #             ("human", "{question}"),
+    #         ]
+    #     )
 
-            chain = (
-                {
-                    "context": retriever | RunnableLambda(message),
-                    "question": RunnablePassthrough(),
-                }
-                | qa_prompt
-                | llm
-            )
+    #     if message:
+    #         send_message(message, "human")
+    #         docs = retriever.similarity_search(message)
+    #         formatted_docs = format_docs(docs)
 
-            # Update memory with the retrieved context
-            st.session_state.memory.update_memory(message)
+    #         # Update memory with the retrieved context
+    #         st.session_state.memory.update_memory(message)
+    #         chain_input = {
+    #             "context": st.session_state.memory.get_context(),
+    #             "question": message,
+    #         }
 
-            chain_input = {
-                "context": st.session_state.memory.get_context(),
-                "question": message,
-            }
+    #         # chain = (
+    #         #     {
+    #         #         "context": retriever | RunnableLambda(message),
+    #         #         "question": RunnablePassthrough(),
+    #         #     }
+    #         #     | qa_prompt
+    #         #     | llm
+    #         # )
 
-            with st.chat_message("ai"):
-                response = chain.invoke(chain_input)
-                # chain.invoke(message).content
-        else:
-            st.session_state["messages"] = []
+    #         chain = prompt | llm
+    #         with st.chat_message("ai"):
+    #             response = chain.invoke(chain_input)
+    #             # chain.invoke(message).content
+    #     else:
+    #         st.session_state["messages"] = []
