@@ -10,40 +10,13 @@ from langchain.chat_models import ChatOpenAI
 from langchain.callbacks.base import BaseCallbackHandler
 import os
 from dotenv import load_dotenv
-from Utils import check_authentication  # Import the utility function
+
 
 # Set the page configuration
 st.set_page_config(
     page_title="DocumentGPT",
     page_icon="📃",
 )
-
-# Ensure the user is authenticated
-check_authentication()
-
-# Load environment variables from .env file for local development
-load_dotenv()
-
-# Access secrets in Streamlit Cloud or locally from environment variables
-openai_api_key = (
-    os.getenv("OPENAI_API_KEY") or st.secrets["credentials"]["OPENAI_API_KEY"]
-)
-alpha_vantage_api_key = (
-    os.getenv("ALPHA_VANTAGE_API_KEY")
-    or st.secrets["credentials"]["ALPHA_VANTAGE_API_KEY"]
-)
-username = os.getenv("username") or st.secrets["credentials"]["username"]
-password = os.getenv("password") or st.secrets["credentials"]["password"]
-
-# Log the API key for debugging (remove this after debugging)
-# st.write(f"OpenAI API Key: {openai_api_key}")
-# st.write(f"Alpha Vantage API Key: {alpha_vantage_api_key}")
-# st.write(f"Username: {username}")
-# st.write(f"Password: {password}")
-
-if not openai_api_key or not alpha_vantage_api_key or not username or not password:
-    st.error("Some required environment variables are missing.")
-    st.stop()
 
 
 class ChatCallBackHandler(BaseCallbackHandler):
@@ -71,7 +44,6 @@ try:
         callbacks=[
             ChatCallBackHandler(),  # Use the custom callback handler
         ],
-        openai_api_key=openai_api_key,  # Pass the API key here
     )
     # st.write("ChatOpenAI initialized successfully.")
 except Exception as e:
@@ -112,12 +84,8 @@ def embed_file(file):
     )
     loader = UnstructuredFileLoader(file_path)
     docs = loader.load_and_split(text_splitter=splitter)
-    # st.write(
-    #     "Embedding API Key (within embed_file):", openai_api_key=openai_api_key
-    # )   Log the API key
-    embeddings = OpenAIEmbeddings(
-        openai_api_key=openai_api_key
-    )  # Pass the API key here
+
+    embeddings = OpenAIEmbeddings()
     cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
 
     # Create a FAISS retriever
