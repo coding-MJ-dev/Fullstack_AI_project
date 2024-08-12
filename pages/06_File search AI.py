@@ -34,8 +34,6 @@ class ChatCallBackHandler(BaseCallbackHandler):
         )  # Update the message box with the accumulated message
 
 
-# Log the exact usage of the API key
-# st.write("Initializing ChatOpenAI with the provided API key...")
 try:
     llm = ChatOpenAI(
         model="gpt-4o-mini",
@@ -45,7 +43,6 @@ try:
             ChatCallBackHandler(),  # Use the custom callback handler
         ],
     )
-    # st.write("ChatOpenAI initialized successfully.")
 except Exception as e:
     st.error(f"Failed to initialize ChatOpenAI: {e}")
     st.stop()
