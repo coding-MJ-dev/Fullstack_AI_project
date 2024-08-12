@@ -17,25 +17,13 @@ from langchain.storage import LocalFileStore
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.callbacks.base import BaseCallbackHandler
 
-llm = ChatOpenAI(temperature=0.1, model="gpt-4o-mini")
 
-memory = ConversationSummaryBufferMemory(
-    llm=llm,
-    max_token_limit=120,
-    memory_key="chat_history",
-    return_messages=True,
-)
-
-# For development purposes
-# I don't want to create transcriptions multiple times for the same file because it can be expensive.
-has_transcript = os.path.exists(
-    "./.cache/DP_Longest_Common_Subsequence_Leetcode1143.txt"
-)
-
-splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=800,
-    chunk_overlap=100,
-)
+# memory = ConversationSummaryBufferMemory(
+#     llm=llm,
+#     max_token_limit=120,
+#     memory_key="chat_history",
+#     return_messages=True,
+# )
 
 
 class ChatCallBackHandler(BaseCallbackHandler):
@@ -54,23 +42,33 @@ class ChatCallBackHandler(BaseCallbackHandler):
         )  # Update the message box with the accumulated message
 
 
-class SimpleMemory:
-    def __init__(self):
-        self.context = ""
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0.1,
+    streaming=True,
+    callbacks=[
+        ChatCallBackHandler(),  # Use the custom callback handler
+    ],
+)
+# For development purposes
+# I don't want to create transcriptions multiple times for the same file because it can be expensive.
+has_transcript = os.path.exists(
+    "./.cache/DP_Longest_Common_Subsequence_Leetcode1143.txt"
+)
 
-    def update_memory(self, new_context):
-        self.context += new_context
 
-    def get_context(self):
-        return self.context
+splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    chunk_size=800,
+    chunk_overlap=100,
+)
 
-
-if "memory" not in st.session_state:
-    st.session_state.memory = SimpleMemory()
+# Ensure the directories exist
+os.makedirs("./.cache/files/", exist_ok=True)
+os.makedirs("./.cache/embeddings/", exist_ok=True)
 
 
 # embed textfile
-@st.cache_data()
+@st.cache_resource()
 def embed_file(file_path):
     cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -80,7 +78,6 @@ def embed_file(file_path):
     loader = TextLoader(file_path)
     docs = loader.load_and_split(text_splitter=splitter)
     embeddings = OpenAIEmbeddings()
-
     cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
     vectorstore = FAISS.from_documents(docs, cached_embeddings)
     retriever = vectorstore.as_retriever()
@@ -139,10 +136,28 @@ def transcribe_chunks(chunk_folder, destination):
             text_file.write(transcript["text"])
 
 
-# ----------- from somewher-------- #
+# class SimpleMemory:
+#     def __init__(self):
+#         self.context = ""
+
+#     def update_memory(self, new_context):
+#         self.context += new_context
+
+#     def get_context(self):
+#         return self.context
 
 
+if "memory" not in st.session_state:
+    st.session_state.memory = []
+
+if "summary" not in st.session_state:
+    st.session_state.summary = ""
+
+
+# ----------- save message for chat -------- #
 def save_message(message, role):
+    if "messages" not in st.session_state:  # Ensure session state has a messages list
+        st.session_state["messages"] = []
     st.session_state["messages"].append({"message": message, "role": role})
 
 
@@ -154,30 +169,34 @@ def send_message(message, role, save=True):
 
 
 def paint_history():
-    for message in st.session_state["messages"]:
-        send_message(
-            message["message"],
-            message["role"],
-            save=False,
-        )
+    if "messages" in st.session_state:  # Check if there are messages in session state
+        for message in st.session_state["messages"]:
+            send_message(
+                message["message"],
+                message["role"],
+                save=False,
+            )
 
 
-# def format_docs(docs):
-#     return "\n\n".join(document.page_content for document in docs)
+# ----------- save summary for chat -------- #
+def save_summary(summary):
+    st.session_state["summary"] += summary
 
 
-def save_memory(input, output):
-    st.session_state["chat_history"].append({"input": input, "output": output})
+# # class SimpleMemory:
+# #     def __init__(self):
+# #         self.context = ""
+
+# #     def update_memory(self, new_context):
+# #         self.context += new_context
+
+# #     def get_context(self):
+# #         return self.context
 
 
-def load_memory(input):
-    return memory.load_memory_variables({})["chat_history"]
-
-
-def invoke_chain(message):
-    result = chain.invoke(message)
-    save_memory(message, result.content)
-    print(result)
+# def paint_summary():
+#     if "summary" in st.session_state:  # Check if there are messages in session state
+#         return st.session_state["summary"].get_context()
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -226,6 +245,8 @@ with st.sidebar:
 
 if video:
     # chunks_folder = "./.cache/chunks"
+    os.makedirs(f"./.cache/chunks_{os.path.splitext(video.name)[0]}", exist_ok=True)
+
     chunks_folder = f"./.cache/chunks_{os.path.splitext(video.name)[0]}"
     transcript_path = f"./.cache/{os.path.splitext(video.name)[0]}.txt"
 
@@ -281,7 +302,6 @@ if video:
             first_summary_chain = (
                 first_summary_prompt | llm | StrOutputParser()
             )  # StrOutputParser make us don't need to use .content
-            summary = first_summary_chain.invoke({"text": docs[0].page_content})
 
             # --------------------------------------------------------------------
             # --------------------------- refine chain ---------------------------
@@ -302,16 +322,23 @@ if video:
             )
 
             refine_chain = refine_prompt | llm | StrOutputParser()
-
+            summary = ""
             with st.status("Summarizing...") as status:
-                for i, doc in enumerate(docs[1:]):
-                    status.update(label=f"processing doc{i+1}/{len(docs)-1}")
-                    summary = refine_chain.invoke(
-                        {
-                            "existing_summary": summary,
-                            "context": doc.page_content,
-                        }
-                    )
+
+                if st.session_state["summary"]:
+                    summary = st.session_state["summary"]
+
+                else:
+                    summary = first_summary_chain.invoke({"text": docs[0].page_content})
+                    for i, doc in enumerate(docs[1:]):
+                        status.update(label=f"processing doc{i+1}/{len(docs)-1}")
+                        summary = refine_chain.invoke(
+                            {
+                                "existing_summary": summary,
+                                "context": doc.page_content,
+                            }
+                        )
+                    save_summary(summary)
             st.write(summary)
 
     with qa_tab:
@@ -337,11 +364,11 @@ if video:
         if message:
             send_message(message, "human")
             # Update memory with the retrieved context
-            st.session_state.memory.update_memory(formatted_docs)
+            st.session_state.memory.update_memory(message)
 
             chain = (
                 {
-                    "context": retriever | RunnableLambda(format_docs),
+                    "context": retriever | RunnableLambda(message),
                     "question": RunnablePassthrough(),
                 }
                 | qa_prompt
@@ -349,7 +376,7 @@ if video:
             )
 
             # Update memory with the retrieved context
-            st.session_state.memory.update_memory(formatted_docs)
+            st.session_state.memory.update_memory(message)
 
             chain_input = {
                 "context": st.session_state.memory.get_context(),
