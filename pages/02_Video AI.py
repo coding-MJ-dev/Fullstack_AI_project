@@ -207,20 +207,20 @@ def save_summary(summary):
     st.session_state["summary"] += summary
 
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """
+# prompt = ChatPromptTemplate.from_messages(
+#     [
+#         (
+#             "system",
+#             """
 
-            Answer the question using ONLY the following context and not your trading data. If you don't know the answer just say you don't know. DON'T make anything up.            
-            Context: {context}
-            """,
-        ),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{question}"),
-    ]
-)
+#             Answer the question using ONLY the following context and not your trading data. If you don't know the answer just say you don't know. DON'T make anything up.
+#             Context: {context}
+#             """,
+#         ),
+#         MessagesPlaceholder(variable_name="chat_history"),
+#         ("human", "{question}"),
+#     ]
+# )
 
 
 ###-------- page start ----------###
@@ -375,11 +375,11 @@ if video:
 
     if message:
         send_message(message, "human")
-        docs = retriever.similarity_search(message)
+        docs = retriever.get_relevant_documents(message)
         formatted_docs = format_docs(docs)
 
         # Update memory with the retrieved context
-        st.session_state.memory.update_memory(message)
+        st.session_state.memory.update_memory(formatted_docs)
         chain_input = {
             "context": st.session_state.memory.get_context(),
             "question": message,
@@ -396,6 +396,8 @@ if video:
 
         chain = prompt | llm
         with st.chat_message("ai"):
+            print(chain_input["context"])
+            print(chain_input["question"])
             response = chain.invoke(chain_input)
             # chain.invoke(message).content
     else:
