@@ -18,14 +18,6 @@ from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.callbacks.base import BaseCallbackHandler
 
 
-# memory = ConversationSummaryBufferMemory(
-#     llm=llm,
-#     max_token_limit=120,
-#     memory_key="chat_history",
-#     return_messages=True,
-# )
-
-
 class ChatCallBackHandler(BaseCallbackHandler):
 
     def on_llm_start(self, *args, **kwargs):
@@ -50,8 +42,8 @@ llm = ChatOpenAI(
         ChatCallBackHandler(),  # Use the custom callback handler
     ],
 )
+
 # For development purposes
-# I don't want to create transcriptions multiple times for the same file because it can be expensive.
 has_transcript = os.path.exists(
     "./.cache/DP_Longest_Common_Subsequence_Leetcode1143.txt"
 )
@@ -63,12 +55,14 @@ splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
 )
 
 # Ensure the directories exist
+os.makedirs("./.cache", exist_ok=True)
 os.makedirs("./.cache/files/", exist_ok=True)
 os.makedirs("./.cache/embeddings/", exist_ok=True)
 
 
 # embed textfile
-@st.cache_resource()
+# @st.cache_resource()
+@st.cache_data()
 def embed_file(file_path):
     cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -88,17 +82,7 @@ def embed_file(file_path):
 @st.cache_data()
 def extract_audio_from_video(video_path):
     audio_path = video_path.replace("mp4", "mp3")
-    command = [
-        "ffmpeg",
-        # Are you overwrite? Yes/no
-        "-y",
-        # input
-        "-i",
-        video_path,
-        # ignore the vedio => vedio nope => vn
-        "-vn",
-        audio_path,
-    ]
+    command = ["ffmpeg", "-y", "-i", video_path, "-vn", audio_path]
     subprocess.run(command)
 
 
@@ -119,14 +103,12 @@ def cut_audio_in_chunks(audio_path, chunk_size, chunks_folder):
 @st.cache_data()
 def transcribe_chunks(chunk_folder, destination):
     # --- for development purpose --- #
-    if has_transcript:
-        return
+    # if has_transcript:
+    #     return
     # ------------------------------- #
     files = glob.glob(f"{chunk_folder}/*.mp3")
     files.sort()
-    # find mp3 files in the folder
     for file in files:
-        # get transcript // append transcribe to destination
         with open(file, "rb") as audio_file, open(destination, "a") as text_file:
             transcript = openai.Audio.transcribe(
                 "whisper-1",
@@ -134,6 +116,22 @@ def transcribe_chunks(chunk_folder, destination):
             )
             # add it to the destination
             text_file.write(transcript["text"])
+
+    # final_transcript = ""
+    # # find mp3 files in the folder
+    # for file in files:
+    #     # get transcript
+    #     with open(file, "rb") as audio_file:
+    #         transcript = openai.Audio.transcribe(
+    #             "whisper-1",
+    #             audio_file,
+    #         )
+    #         # add it to the final transcript
+    #         final_transcript += transcript["text"]
+    # print(destination)
+    # # And open a file, and write the final transcript
+    # with open(destination, "w") as file:
+    #     file.write(final_transcript)
 
 
 def text_to_bytes(text):
@@ -151,8 +149,8 @@ class SimpleMemory:
         return self.context
 
 
-if "memory" not in st.session_state:
-    st.session_state.memory = SimpleMemory()
+if "video_memory" not in st.session_state:
+    st.session_state.video_memory = SimpleMemory()
 
 if "summary" not in st.session_state:
     st.session_state.summary = ""
@@ -207,22 +205,6 @@ def save_summary(summary):
     st.session_state["summary"] += summary
 
 
-# prompt = ChatPromptTemplate.from_messages(
-#     [
-#         (
-#             "system",
-#             """
-
-#             Answer the question using ONLY the following context and not your trading data. If you don't know the answer just say you don't know. DON'T make anything up.
-#             Context: {context}
-#             """,
-#         ),
-#         MessagesPlaceholder(variable_name="chat_history"),
-#         ("human", "{question}"),
-#     ]
-# )
-
-
 ###-------- page start ----------###
 
 st.set_page_config(
@@ -252,7 +234,6 @@ with st.sidebar:
 
 
 if video:
-    # chunks_folder = "./.cache/chunks"
     os.makedirs(f"./.cache/chunks_{os.path.splitext(video.name)[0]}", exist_ok=True)
 
     chunks_folder = f"./.cache/chunks_{os.path.splitext(video.name)[0]}"
@@ -269,7 +250,12 @@ if video:
                 .replace(".mkv", ".mp3")
                 .replace(".mov", ".mp3")
             )
-            # transcript_path = video_path.replace("mp4", "txt")
+            # transcript_path = (
+            #     video_path.replace(".mp4", ".txt")
+            #     .replace(".avi", ".txt")
+            #     .replace(".mkv", ".txt")
+            #     .replace(".mov", ".txt")
+            # )
 
             # wb > write in binary
             with open(video_path, "wb") as f:
@@ -298,6 +284,7 @@ if video:
         st.write("Transcription file not found.")
 
     # QA with summary -------------
+
     loader = TextLoader(transcript_path)
     docs = loader.load_and_split(text_splitter=splitter)
 
@@ -350,14 +337,13 @@ if video:
                     }
                 )
             save_summary(summary)
-    st.write(summary)
+    # st.write(summary)
 
     retriever = embed_file(transcript_path)
     # qa_start = st.button("Ask about the video")
     # send_message(summary, "ai", save=False)
+    send_message(summary, "ai", save=False)
     send_message("Ask anything about your video!", "ai", save=False)
-    paint_history()
-    message = st.chat_input("Ask anything about your video...")
 
     qa_prompt = ChatPromptTemplate.from_messages(
         [
@@ -372,16 +358,17 @@ if video:
             ("human", "{question}"),
         ]
     )
-
+    paint_history()
+    message = st.chat_input("Ask anything about your video...")
     if message:
         send_message(message, "human")
         docs = retriever.get_relevant_documents(message)
         formatted_docs = format_docs(docs)
 
         # Update memory with the retrieved context
-        st.session_state.memory.update_memory(formatted_docs)
+        st.session_state.video_memory.update_memory(formatted_docs)
         chain_input = {
-            "context": st.session_state.memory.get_context(),
+            "context": st.session_state.video_memory.get_context(),
             "question": message,
         }
 
@@ -396,8 +383,6 @@ if video:
 
         chain = prompt | llm
         with st.chat_message("ai"):
-            print(chain_input["context"])
-            print(chain_input["question"])
             response = chain.invoke(chain_input)
             # chain.invoke(message).content
     else:
