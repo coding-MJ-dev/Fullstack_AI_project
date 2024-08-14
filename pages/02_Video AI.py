@@ -18,6 +18,7 @@ from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.callbacks.base import BaseCallbackHandler
 
 
+# for chat function
 class ChatCallBackHandler(BaseCallbackHandler):
 
     def on_llm_start(self, *args, **kwargs):
@@ -152,8 +153,8 @@ class SimpleMemory:
 if "video_memory" not in st.session_state:
     st.session_state.video_memory = SimpleMemory()
 
-if "summary" not in st.session_state:
-    st.session_state.summary = ""
+# if "summary" not in st.session_state:
+#     st.session_state.summary = ""
 
 
 # ----------- save message for chat -------- #
@@ -201,8 +202,8 @@ prompt = ChatPromptTemplate.from_messages(
 
 
 # ----------- save summary -------- #
-def save_summary(summary):
-    st.session_state["summary"] += summary
+# def save_summary(summary):
+#     st.session_state["summary"] += summary
 
 
 ###-------- page start ----------###
@@ -234,12 +235,25 @@ with st.sidebar:
 
 
 if video:
+    os.makedirs("./.cache", exist_ok=True)
+    # os.makedirs(f"./.cache/{video.name}", exist_ok=True)
     os.makedirs(f"./.cache/chunks_{os.path.splitext(video.name)[0]}", exist_ok=True)
 
     chunks_folder = f"./.cache/chunks_{os.path.splitext(video.name)[0]}"
     transcript_path = f"./.cache/{os.path.splitext(video.name)[0]}.txt"
+    if os.path.exists(transcript_path):
+        with open(transcript_path, "r") as file:
+            transcript_text = file.read()
 
-    if not os.path.exists(transcript_path):
+        st.download_button(
+            label="Download transcript",
+            data=transcript_text,
+            file_name=os.path.basename(transcript_path),
+            mime="text/plain",
+        )
+
+    else:
+        # if not os.path.exists(transcript_path):
         with st.status("Loading video...") as status:
             video_content = video.read()
             os.makedirs("./.cache", exist_ok=True)
@@ -250,12 +264,6 @@ if video:
                 .replace(".mkv", ".mp3")
                 .replace(".mov", ".mp3")
             )
-            # transcript_path = (
-            #     video_path.replace(".mp4", ".txt")
-            #     .replace(".avi", ".txt")
-            #     .replace(".mkv", ".txt")
-            #     .replace(".mov", ".txt")
-            # )
 
             # wb > write in binary
             with open(video_path, "wb") as f:
@@ -269,8 +277,6 @@ if video:
             status.update(label="Transcribing audio...")
             transcribe_chunks(chunks_folder, transcript_path)
 
-    # --- Transcription download"
-    if os.path.exists(transcript_path):
         with open(transcript_path, "r") as file:
             transcript_text = file.read()
 
@@ -280,110 +286,106 @@ if video:
             file_name=os.path.basename(transcript_path),
             mime="text/plain",
         )
-    else:
-        st.write("Transcription file not found.")
 
-    # QA with summary -------------
+        # # --- Transcription download"
+    if os.path.exists(transcript_path):
+        #     # QA with summary -------------
 
-    loader = TextLoader(transcript_path)
-    docs = loader.load_and_split(text_splitter=splitter)
+        loader = TextLoader(transcript_path)
+        docs = loader.load_and_split(text_splitter=splitter)
 
-    # summarize one chain
-    first_summary_prompt = ChatPromptTemplate.from_template(
-        """
-        Write a concise summary of the following:
-        "{text}"
-        CONCISE SUMMARY: 
-        """
-    )
+        #     # summarize one chain
+        #     first_summary_prompt = ChatPromptTemplate.from_template(
+        #         """
+        #         Write a concise summary of the following:
+        #         "{text}"
+        #         CONCISE SUMMARY:
+        #         """
+        #     )
 
-    first_summary_chain = (
-        first_summary_prompt | llm | StrOutputParser()
-    )  # StrOutputParser make us don't need to use .content
+        #     first_summary_chain = (
+        #         first_summary_prompt | llm | StrOutputParser()
+        #     )  # StrOutputParser make us don't need to use .content
 
-    # --------------------------------------------------------------------
-    # --------------------------- refine chain ---------------------------
-    # The refine documents chain constructs a response by looping over the input documents and iteratively updating its answer. (https://js.langchain.com/v0.1/docs/modules/chains/document/refine/)
-    # ---------------------------------------------------------------------
-    # Summarize all document
-    refine_prompt = ChatPromptTemplate.from_template(
-        """
-        Your job is to produce a final summary.
-        We have provided an existing summary up to a certain point: {existing_summary}
-        We have the opportunity to refine the existing summary (only if needed) with some more context below.
-        ------------
-        {context}
-        ------------
-        Given the new context, refine the original summary.
-        If the context isn't useful, RETURN the original summary.
-        """
-    )
+        #     # --------------------------------------------------------------------
+        #     # --------------------------- refine chain ---------------------------
+        #     # The refine documents chain constructs a response by looping over the input documents and iteratively updating its answer. (https://js.langchain.com/v0.1/docs/modules/chains/document/refine/)
+        #     # ---------------------------------------------------------------------
+        #     # Summarize all document
 
-    refine_chain = refine_prompt | llm | StrOutputParser()
-    summary = ""
-    with st.status("Summarizing...") as status:
+        #     summary = first_summary_chain.invoke(
+        #         {"text": docs[0].page_content},
+        #     )
 
-        if st.session_state["summary"]:
-            summary = st.session_state["summary"]
+        #     refine_prompt = ChatPromptTemplate.from_template(
+        #         """
+        #         Your job is to produce a final summary.
+        #         We have provided an existing summary up to a certain point: {existing_summary}
+        #         We have the opportunity to refine the existing summary (only if needed) with some more context below.
+        #         ------------
+        #         {context}
+        #         ------------
+        #         Given the new context, refine the original summary.
+        #         If the context isn't useful, RETURN the original summary.
+        #         """
+        #     )
 
+        #     refine_chain = refine_prompt | llm | StrOutputParser()
+
+        #     with st.status("Summarizing...") as status:
+        #         for i, doc in enumerate(docs[1:]):
+        #             st.info(f"Processing document {i+1}/{len(docs)-1}")
+        #             summary = refine_chain.invoke(
+        #                 {
+        #                     "existing_summary": summary,
+        #                     "context": doc.page_content,
+        #                 }
+        #             )
+        #     st.write(summary)
+
+        retriever = embed_file(transcript_path)
+        send_message("Ask anything about your video!", "ai", save=False)
+
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+                    Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
+
+                    Context: {context}
+                    """,
+                ),
+                ("human", "{question}"),
+            ]
+        )
+
+        message = st.chat_input("Ask anything about your video...")
+        paint_history()
+        if message:
+            send_message(message, "human")
+            docs = retriever.get_relevant_documents(message)
+            formatted_docs = format_docs(docs)
+
+            # Update memory with the retrieved context
+            st.session_state.video_memory.update_memory(formatted_docs)
+            chain_input = {
+                "context": st.session_state.video_memory.get_context(),
+                "question": message,
+            }
+
+            # chain = (
+            #     {
+            #         "context": retriever | RunnableLambda(message),
+            #         "question": RunnablePassthrough(),
+            #     }
+            #     | qa_prompt
+            #     | llm
+            # )
+
+            chain = prompt | llm
+            with st.chat_message("ai"):
+                response = chain.invoke(chain_input)
+                # chain.invoke(message).content
         else:
-            summary = first_summary_chain.invoke({"text": docs[0].page_content})
-            for i, doc in enumerate(docs[1:]):
-                status.update(label=f"processing doc{i+1}/{len(docs)-1}")
-                summary = refine_chain.invoke(
-                    {
-                        "existing_summary": summary,
-                        "context": doc.page_content,
-                    }
-                )
-            save_summary(summary)
-    # st.write(summary)
-
-    retriever = embed_file(transcript_path)
-    # qa_start = st.button("Ask about the video")
-    # send_message(summary, "ai", save=False)
-    send_message(summary, "ai", save=False)
-    send_message("Ask anything about your video!", "ai", save=False)
-
-    qa_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """
-                Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
-
-                Context: {context}
-                """,
-            ),
-            ("human", "{question}"),
-        ]
-    )
-    paint_history()
-    message = st.chat_input("Ask anything about your video...")
-    if message:
-        send_message(message, "human")
-        docs = retriever.get_relevant_documents(message)
-        formatted_docs = format_docs(docs)
-
-        # Update memory with the retrieved context
-        st.session_state.video_memory.update_memory(formatted_docs)
-        chain_input = {
-            "context": st.session_state.video_memory.get_context(),
-            "question": message,
-        }
-
-        # chain = (
-        #     {
-        #         "context": retriever | RunnableLambda(message),
-        #         "question": RunnablePassthrough(),
-        #     }
-        #     | qa_prompt
-        #     | llm
-        # )
-
-        chain = prompt | llm
-        with st.chat_message("ai"):
-            response = chain.invoke(chain_input)
-            # chain.invoke(message).content
-    else:
-        st.session_state["messages"] = []
+            st.session_state["messages"] = []
