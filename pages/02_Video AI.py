@@ -62,8 +62,8 @@ os.makedirs("./.cache/embeddings/", exist_ok=True)
 
 
 # embed textfile
-# @st.cache_resource()
-@st.cache_data()
+# @st.cache_data()
+@st.cache_resource()
 def embed_file(file_path):
     cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -81,8 +81,8 @@ def embed_file(file_path):
 
 
 @st.cache_data()
-def extract_audio_from_video(video_path):
-    audio_path = video_path.replace("mp4", "mp3")
+def extract_audio_from_video(video_path, audio_path):
+    # audio_path = video_path.replace("mp4", "mp3")
     command = ["ffmpeg", "-y", "-i", video_path, "-vn", audio_path]
     subprocess.run(command)
 
@@ -270,7 +270,7 @@ if video:
                 # save the video that user upload to cache file "f"
                 f.write(video_content)
             status.update(label="Extracting audio...")
-            extract_audio_from_video(video_path)
+            extract_audio_from_video(video_path, audio_path)
             status.update(label="cutting audio segments...")
             os.makedirs(chunks_folder, exist_ok=True)
             cut_audio_in_chunks(audio_path, 10, chunks_folder)
