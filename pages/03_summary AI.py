@@ -241,16 +241,6 @@ if video:
             status.update(label="Transcribing audio...")
             transcribe_chunks(chunks_folder, transcript_path)
 
-        # with open(transcript_path, "r") as file:
-        #     transcript_text = file.read()
-
-        # st.download_button(
-        #     label="Download transcript",
-        #     data=transcript_text,
-        #     file_name=os.path.basename(transcript_path),
-        #     mime="text/plain",
-        # )
-
     # --- Transcription download"
     if os.path.exists(transcript_path):
         # QA with summary -------------
@@ -320,50 +310,3 @@ if video:
 
             # save_summary(summary)
         st.write(summary)
-
-        # retriever = embed_file(transcript_path)
-        # send_message("Ask anything about your video!", "ai", save=False)
-
-        # qa_prompt = ChatPromptTemplate.from_messages(
-        #     [
-        #         (
-        #             "system",
-        #             """
-        #             Answer the question using ONLY the following context. If you don't know the answer just say you don't know. Don't make anything up.
-
-        #             Context: {context}
-        #             """,
-        #         ),
-        #         ("human", "{question}"),
-        #     ]
-        # )
-
-        # message = st.chat_input("Ask anything about your video...")
-        # paint_history()
-        # if message:
-        #     send_message(message, "human")
-        #     docs = retriever.get_relevant_documents(message)
-        #     formatted_docs = format_docs(docs)
-
-        #     # Update memory with the retrieved context
-        #     st.session_state.video_memory.update_memory(formatted_docs)
-        #     chain_input = {
-        #         "context": st.session_state.video_memory.get_context(),
-        #         "question": message,
-        #     }
-
-        #     # chain = (
-        #     #     {
-        #     #         "context": retriever | RunnableLambda(message),
-        #     #         "question": RunnablePassthrough(),
-        #     #     }
-        #     #     | qa_prompt
-        #     #     | llm
-        #     # )
-
-        #     chain = prompt | llm
-        #     with st.chat_message("ai"):
-        #         response = chain.invoke(chain_input)
-        #         # chain.invoke(message).content
-        # else:
-        #     st.session_state["messages"] = []
