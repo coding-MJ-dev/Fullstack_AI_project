@@ -14,15 +14,17 @@ Welcome to my AI Portfolio!
             
 Here are the apps I made:
 
+- 🗒️[File search AI](/File_search_AI)
 - 💯[Quiz AI](/Quiz_AI)
 - 🎬[Video AI](/Video_AI)
-- 🗒️[File search AI](/File_search_AI)
+- 🤓[summary AI](/summary_AI)
 
-- 🔍[Investigate webpage AI](/Investigate_webpage_AI)
+
+
 
 """
 )
-
+# - 🔍[Investigate webpage AI](/Investigate_webpage_AI)
 # - 🔐[Secure AI](/Secure_AI)
 # - [ ] [MeetingGPT](/MeetingGPT)
 # - [ ] [InvestorGPT](/InvestorGPT)
