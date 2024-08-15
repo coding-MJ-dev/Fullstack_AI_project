@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import os
 from langchain.retrievers import WikipediaRetriever
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.document_loaders import UnstructuredFileLoader
@@ -200,6 +201,7 @@ formatting_chain = formatting_prompt | llm
 @st.cache_data(show_spinner="Loading file...")
 def split_file(file):
     file_content = file.read()
+    os.makedirs("./.cache/quiz_files", exist_ok=True)
     file_path = f"./.cache/quiz_files/{file.name}"
     with open(file_path, "wb") as f:
         f.write(file_content)
@@ -228,6 +230,7 @@ def wiki_search(topic):
 
 with st.sidebar:
     docs = None
+    topic = None
     choice = st.selectbox(
         "Choose what you want to use",
         (
@@ -262,17 +265,21 @@ Please upload a file or search for a topic on the sidebar!
     )
 else:
     response = run_quiz_chain(docs, topic if topic else file.name)
-    with st.form("questions_form"):
-        for question in response["questions"]:
-            st.write(question["question"])
-            value = st.radio(
-                "Select an option.",
-                [answer["answer"] for answer in question["answers"]],
-                index=None,
-            )
-            if {"answer": value, "correct": True} in question["answers"]:
-                st.success("correct!")
-            elif value is not None:
-                st.error("Wrong")
-
-        button = st.form_submit_button()
+    try:
+        # ## Use the parsed response directly ##
+        parsed_response = response
+        with st.form("questions_form"):
+            for question in parsed_response["questions"]:
+                st.write(question["question"])
+                value = st.radio(
+                    "Select an option.",
+                    [answer["answer"] for answer in question["answers"]],
+                    index=None,
+                )
+                if {"answer": value, "correct": True} in question["answers"]:
+                    st.success("Correct!")
+                elif value is not None:
+                    st.error("Wrong!")
+            button = st.form_submit_button("Submit")
+    except json.JSONDecodeError:
+        st.error("Failed to parse the quiz questions. Please try again.")
