@@ -256,9 +256,7 @@ if not docs:
         """
     Welcome to Quiz AI!
 
-To boost your knowledge and help with your studies,
-
-I will create a quiz from an uploaded document or Wikipedia articles.
+To boost your knowledge and help with your studies, I will create a quiz from an uploaded document or Wikipedia articles.
 
 Please upload a file or search for a topic on the sidebar!
     """
