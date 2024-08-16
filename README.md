@@ -10,54 +10,95 @@
 
 : Building an AI web service using GPT-4 and Langchain
 
-: Langchain, LangChain Expression Language(LCEL / LLM), GPT4, OpenAI, Streamlit
+: Langchain, LangChain Expression Language(LCEL / LLM), GPT4, OpenAI, prompt engineering,  Streamlit
+
+
 
 **: data engineering, prompt engineering, data scrapping, data analysis**
 
+## 🗒️ File search AI ##
 
-## Quiz AI ##
+Upload your files and let the AI help you navigate and understand your documents with ease!
+
+**How to Use:**
+
+- Upload the documents (.txt, .pdf, .docx, etc.) to the system.
+
+- Use the chatbot interface to ask any questions you have about the documents.
+
+- The chatbot will provide answers based on the documents.
+
+
+**Interactive Document Analysis:** By using this AI chatbot, it will read documents (.txt, .pdf, .docx, etc.) and promptly answer any questions you have about the document.
+
+###     ###
+
+
+## 💯 Quiz AI ##
 
 Do you want to boost your knowledge?
 
-This quiz-generating AI will help with your studies. 
-You can simply upload documents or Wikipedia articles to check your understanding.
+This quiz-generating AI will help with your studies. You can simply upload documents or Wikipedia articles to check your understanding.
 
-: Gathering a data from Wikipedia or uploaded document and making a quiz based on the data
-: data engineering
+**How It Works:**
+- Data Gathering: The AI gathers information from Wikipedia or the uploaded document.
+ 
+- Quiz Creation: Based on the collected data, the AI creates quizzes to test and reinforce your understanding of the material.
+
+**Features:**
+
+**Customizable Quizzes:** Tailor the quizzes to focus on specific topics or areas you want to improve.
+
+**Instant Feedback:** Get immediate feedback on your answers to help guide your learning.
+
+**Data Engineering:** The AI utilizes advanced data engineering techniques to extract and process information, ensuring the quizzes are accurate and relevant.
+
+Upload your documents or search for topics, and start quizzing yourself to boost your knowledge!
 
 
-###     
 
 
-## Investigate webpage AI ##
 
-Use this chatbot to ask questions about content on a website.
 
-Investigate webpage AI designed to analyze and extract information from webpages.
+###     ###
+
+
+## 🎬 Video AI ##
+
+This video description file provides an overview of the content in the video. The file outlines key points, topics covered, and any relevant details that viewers might want to know. This description can be used as a reference for those who need a quick summary or are looking for specific information within the video.
+
+**How to Use:**
+
+- Upload the video to the system.
+
+- Use the chatbot interface to ask any questions you have about the video's content.
+
+- The chatbot will provide answers based on the video's description and key points.
+
+- This setup is perfect for those who want to quickly navigate through video content or need assistance understanding specific parts of a video.
+
+**Using the Chatbot to Ask About Video Content:**
+
+You can interact with the chatbot to ask anything about the content of the video. Whether you need clarification on specific topics, want a summary of a particular section, or have any other questions related to the video, the chatbot is here to assist you.
+
+
 
 
 ###
 
-## File search AI ##
-
-: Quickly and accurately understand and summarize document contents using AI.
-
-: By using this AI chatbot, it will reads documents (.txt, .pdf, .docx, etc.) and promptly answers any questions about the document.
 
 
+## 🤓 Video Summay AI ##
 
-###
+Quickly and Accurately Summarize Video Contents - Utilize AI to efficiently understand and summarize the contents of your videos.
 
+**Interactive Video Analysis:** Use this chatbot to ask questions about your video content!
 
-## Secure AI ##
+**Private and Secure:** It operates in a private local environment without connecting to the Internet.
 
-: Use this chatbot to ask questions about your documentation!
+**Confidentiality Guaranteed:** Ideal for confidential videos, as none of the content is saved on the server.
 
-: It doesn't connect to the Internet and works in a private local environment.
-
-: It is for confidential documents since none of the documents are saved on the server.
-
-
+Upload your video and get the answers you need, securely and efficiently!
 
 ###
 
